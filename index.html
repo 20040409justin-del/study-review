@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>错题记忆复盘台</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span id="brandMark" class="brand-mark">记</span>
+          <div>
+            <h1 id="brandTitle">错题复盘台</h1>
+            <p id="brandSubtitle">自定义事件 · 动态记忆排程</p>
+          </div>
+        </div>
+
+        <section class="progress-panel" aria-labelledby="progress-title">
+          <div class="section-heading">
+            <h2 id="progress-title">目标进度</h2>
+            <span id="daysLeft">-- 天</span>
+          </div>
+          <div class="goal-form">
+            <label>
+              <span>事件</span>
+              <input id="eventName" type="text" placeholder="例如：27考研" />
+            </label>
+            <label>
+              <span>截止日期</span>
+              <input id="deadlineDate" type="date" />
+            </label>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div id="halfYearProgress" class="progress-fill"></div>
+          </div>
+          <p id="progressCopy" class="muted">从今天开始，每道错题都会留下痕迹。</p>
+        </section>
+
+        <nav class="nav-tabs" aria-label="页面切换">
+          <button class="tab-button active" data-view="dashboard" type="button">总览</button>
+          <button class="tab-button" data-view="add" type="button">录入错题</button>
+          <button class="tab-button" data-view="review" type="button">错题复盘</button>
+          <button class="tab-button" data-view="calendar" type="button">学习日历</button>
+        </nav>
+
+        <section class="cloud-panel" aria-labelledby="cloud-title">
+          <div class="section-heading">
+            <h2 id="cloud-title">云同步</h2>
+            <span id="cloudStatus">未连接</span>
+          </div>
+          <div class="cloud-form">
+            <label>
+              <span>Supabase URL</span>
+              <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co" />
+            </label>
+            <label>
+              <span>Publishable / anon key</span>
+              <input id="supabaseKey" type="password" placeholder="粘贴公开 key" />
+            </label>
+            <button id="connectCloudBtn" class="secondary-action" type="button">连接</button>
+            <label>
+              <span>邮箱</span>
+              <input id="authEmail" type="email" placeholder="you@example.com" />
+            </label>
+            <label>
+              <span>密码</span>
+              <input id="authPassword" type="password" placeholder="至少 6 位" />
+            </label>
+            <div class="cloud-actions">
+              <button id="signUpBtn" class="secondary-action" type="button">注册</button>
+              <button id="signInBtn" class="secondary-action" type="button">登录</button>
+              <button id="signOutBtn" class="secondary-action" type="button">退出</button>
+            </div>
+            <div class="cloud-actions">
+              <button id="pushCloudBtn" class="secondary-action" type="button">保存到云端</button>
+              <button id="pullCloudBtn" class="secondary-action" type="button">从云端读取</button>
+            </div>
+          </div>
+          <p id="cloudMessage" class="muted">先创建 Supabase 项目并执行随附 SQL。</p>
+        </section>
+
+        <section class="subject-list" aria-labelledby="subject-title">
+          <div class="section-heading">
+            <h2 id="subject-title">科目</h2>
+          </div>
+          <div id="subjectStats"></div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Learning evidence</p>
+            <h2 id="viewTitle">今天的进步</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="exportBtn" class="icon-button" type="button" title="导出数据" aria-label="导出数据">
+              <span aria-hidden="true">↓</span>
+            </button>
+            <label class="icon-button" title="导入数据" aria-label="导入数据">
+              <span aria-hidden="true">↑</span>
+              <input id="importInput" class="sr-only" type="file" accept="application/json" />
+            </label>
+          </div>
+        </header>
+
+        <section id="dashboardView" class="view active-view">
+          <div class="metric-grid">
+            <article class="metric">
+              <span>错题总数</span>
+              <strong id="totalProblems">0</strong>
+            </article>
+            <article class="metric">
+              <span>已复盘次数</span>
+              <strong id="totalReviews">0</strong>
+            </article>
+            <article class="metric">
+              <span>重刷正确率</span>
+              <strong id="overallAccuracy">--</strong>
+            </article>
+            <article class="metric">
+              <span>待复盘</span>
+              <strong id="dueProblems">0</strong>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h3>最近复盘</h3>
+              </div>
+              <div id="recentReviews" class="timeline empty-state">暂无复盘记录。</div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h3>薄弱知识点</h3>
+              </div>
+              <div id="weakTags" class="tag-cloud empty-state">录入题目后会自动统计。</div>
+            </section>
+          </div>
+        </section>
+
+        <section id="addView" class="view">
+          <form id="problemForm" class="problem-form">
+            <section class="panel">
+              <div class="section-heading">
+                <h3>上传图片</h3>
+                <span class="hint">题目和解析均以图片保存</span>
+              </div>
+              <div class="upload-grid">
+                <label class="upload-zone">
+                  <span>题目图片</span>
+                  <input id="questionImageInput" type="file" accept="image/*" required />
+                  <div id="questionImagePreview" class="image-preview">题目图片预览</div>
+                </label>
+                <label class="upload-zone">
+                  <span>答案解析图片</span>
+                  <input id="answerImageInput" type="file" accept="image/*" required />
+                  <div id="answerImagePreview" class="image-preview">答案解析图片预览</div>
+                </label>
+              </div>
+              <div class="ai-note">
+                <strong>图片归档模式</strong>
+                <p>当前版本只保存图片和分类信息，不做文字识别。这样录入速度最快，也更适合手写题和纸质资料。</p>
+              </div>
+            </section>
+
+            <section class="panel form-grid">
+              <label>
+                <span>科目</span>
+                <input id="subject" type="text" list="subjectSuggestions" placeholder="例如：数学 / 信号与系统" required />
+                <datalist id="subjectSuggestions"></datalist>
+              </label>
+              <label>
+                <span>知识点标签</span>
+                <input id="tags" type="text" placeholder="例如：傅里叶变换, 卷积性质" required />
+              </label>
+              <label>
+                <span>题目难度</span>
+                <select id="difficulty">
+                  <option value="基础">基础</option>
+                  <option value="中等" selected>中等</option>
+                  <option value="困难">困难</option>
+                </select>
+              </label>
+              <label>
+                <span>当前掌握度</span>
+                <select id="masteryLevel">
+                  <option value="0">0 完全不会</option>
+                  <option value="1" selected>1 部分想起</option>
+                  <option value="2">2 可独立做出</option>
+                  <option value="3">3 熟练掌握</option>
+                  <option value="4">4 可迁移讲解</option>
+                </select>
+              </label>
+              <label>
+                <span>本次提取难度</span>
+                <select id="difficultyCondition">
+                  <option value="complete_failure">完全不会</option>
+                  <option value="severe_struggle">严重卡顿</option>
+                  <option value="normal_success" selected>正常做对</option>
+                  <option value="easy_success">轻松做对</option>
+                  <option value="instant_solution">秒解</option>
+                </select>
+              </label>
+              <label>
+                <span>起算日期</span>
+                <input id="scheduleFrom" type="date" />
+              </label>
+              <button class="primary-action full-span" type="submit">保存错题</button>
+            </section>
+          </form>
+        </section>
+
+        <section id="reviewView" class="view">
+          <section class="review-toolbar">
+            <label>
+              <span>筛选科目</span>
+              <select id="filterSubject">
+                <option value="全部">全部</option>
+              </select>
+            </label>
+            <label>
+              <span>搜索知识点/题目</span>
+              <input id="searchInput" type="search" placeholder="输入关键词" />
+            </label>
+          </section>
+          <div id="problemList" class="problem-list"></div>
+        </section>
+
+        <section id="calendarView" class="view">
+          <section class="calendar-toolbar">
+            <div>
+              <p class="eyebrow">Review calendar</p>
+              <h3 id="calendarTitle">2026 年 5 月复习安排</h3>
+            </div>
+            <div class="calendar-controls">
+              <label>
+                <span>年份</span>
+                <input id="calendarYear" type="number" min="2000" max="2100" value="2026" />
+              </label>
+              <label>
+                <span>月份</span>
+                <select id="calendarMonth">
+                  <option value="0">1 月</option>
+                  <option value="1">2 月</option>
+                  <option value="2">3 月</option>
+                  <option value="3">4 月</option>
+                  <option value="4" selected>5 月</option>
+                  <option value="5">6 月</option>
+                  <option value="6">7 月</option>
+                  <option value="7">8 月</option>
+                  <option value="8">9 月</option>
+                  <option value="9">10 月</option>
+                  <option value="10">11 月</option>
+                  <option value="11">12 月</option>
+                </select>
+              </label>
+            </div>
+          </section>
+          <div id="calendarGrid" class="calendar-grid"></div>
+          <section class="panel selected-day-panel">
+            <div class="section-heading">
+              <h3 id="selectedDateTitle">选择一天</h3>
+              <span id="selectedDateSummary" class="hint"></span>
+            </div>
+            <div id="selectedDateList" class="day-task-list empty-state">点击日历中的日期查看当天学习内容。</div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <template id="problemCardTemplate">
+      <article class="problem-card">
+        <div class="problem-card-header">
+          <div>
+            <span class="subject-pill"></span>
+            <span class="difficulty-pill"></span>
+          </div>
+          <span class="accuracy-pill"></span>
+        </div>
+        <div class="problem-image question-image"></div>
+        <div class="tag-row"></div>
+        <div class="memory-line"></div>
+        <div class="review-row">
+          <button class="secondary-action toggle-answer" type="button">查看解析</button>
+          <button class="result-button fail" data-condition="complete_failure" type="button">完全不会</button>
+          <button class="result-button struggle" data-condition="severe_struggle" type="button">严重卡顿</button>
+          <button class="result-button correct" data-condition="normal_success" type="button">正常做对</button>
+          <button class="result-button easy" data-condition="easy_success" type="button">轻松做对</button>
+          <button class="result-button instant" data-condition="instant_solution" type="button">秒解</button>
+        </div>
+        <div class="danger-row">
+          <button class="danger-action delete-problem" type="button">删除题目</button>
+        </div>
+        <div class="answer-box" hidden>
+          <div class="problem-image answer-image"></div>
+        </div>
+        <div class="history-line"></div>
+      </article>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
